@@ -76,8 +76,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private TextView textViewWayPointDistanceLine;
     private TextView textViewWayPointDistance;
     //Notification textViews
-    private TextView textViewTripmeterMetrics;
-    private TextView textViewWayPointMetrics;
+    //private TextView textViewTripmeterMetrics;
+    //private TextView textViewWayPointMetrics;
 
     //values to calculate speed
     private double firstLat = 0;
@@ -120,7 +120,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mBroadcastReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
+                String action = intent.getAction();
 
+                if(action.equals("notification-broadcast-addwaypoint")) {
+                    buttonAddWayPointClicked(null);
+                } else if (action.equals("notification-broadcast-resettripmeter")) {
+                    buttonCResetClicked(null);
+                }
             }
         };
 
@@ -168,8 +174,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             textViewResettedDistance = (TextView) findViewById(R.id.textview_creset_distance);
             textViewWayPointDistanceLine = (TextView) findViewById(R.id.textview_wp_line);
             textViewWayPointDistance = (TextView) findViewById(R.id.textview_wp_distance);
-            textViewTripmeterMetrics = (TextView) findViewById(R.id.textViewTripmeterMetrics);
-            textViewWayPointMetrics = (TextView) findViewById(R.id.textViewWayPointMetrics);
+            //textViewTripmeterMetrics = (TextView) findViewById(R.id.textViewTripmeterMetrics);
+            //textViewWayPointMetrics = (TextView) findViewById(R.id.textViewWayPointMetrics);
 
         }
 
@@ -220,8 +226,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 //Notification textViews
                 if(notificationCalled) {
-                    textViewTripmeterMetrics.setText(Long.toString(totalDistance));
-                    textViewWayPointMetrics.setText(Long.toString(wayPointDistance));
+
+                    //textViewTripmeterMetrics.setText(Long.toString(totalDistance)); //setText(Long.toString(totalDistance))
+                    //textViewWayPointMetrics.setText(Long.toString(wayPointDistance));
                 }
                 //In app textViews
                 textViewWayPointDistanceLine.setText(Long.toString(birdWayPointDistance));
@@ -455,6 +462,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             mPolyline.setPoints(points);
         }
         locationPrevious = location;
+        notificationCustomLayout();
+        //Log.d(TAG, "Location Updated..................................");
     }
 
     @Override
@@ -504,7 +513,36 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             locationManager.removeUpdates(this);
         }
 
-        notificationCustomLayout();
+        // get the view layout
+        RemoteViews remoteView = new RemoteViews(
+                getPackageName(), R.layout.custom_notification);
+
+        //Update textView values in custom Notification
+        remoteView.setTextViewText(R.id.textViewTripmeterMetrics, Long.toString(totalDistance));
+        remoteView.setTextViewText(R.id.textViewWayPointMetrics, Long.toString(wayPointDistance));
+        NotificationCompat.Builder mBuilder =
+                new NotificationCompat.Builder(this)
+                        .setContent(remoteView)
+                        .setSmallIcon(R.drawable.ic_my_location_white_48dp);
+
+
+        mNotificationManager.notify(0, mBuilder.build());
+
+        /*final Handler h = new Handler();
+        final int delay = 1000; //milliseconds
+
+        h.postDelayed(new Runnable(){
+            public void run(){
+                h.postDelayed(this, delay);
+            }
+        }, delay);*/
+        //notificationCustomLayout();
+    }
+
+    @Override
+    protected void onDestroy() {
+        //unregisterReceiver(mBroadcastReceiver);
+        super.onDestroy();
     }
 
     private long calculateDistance(double lat1, double lng1, double lat2, double lng2) {
@@ -519,34 +557,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         return distanceInMeters;
     }
 
-    public void buttonNotificationBroadcast(View view) {
-        Intent mNotifyIntent = new Intent("notification-broadcast");
-
-        PendingIntent mNotifityPendingIntent = PendingIntent.getBroadcast(
-                this,
-                0,
-                mNotifyIntent,
-                0
-        );
-
-        NotificationCompat.Builder mBuilder =
-                new NotificationCompat.Builder(this)
-                        .setSmallIcon(R.drawable.ic_location_on_white_24dp)
-                        .setContentTitle("Title")
-                        .setContentText("Special with button! " +(new Date()))
-                        .setAutoCancel(true)
-                        .setColor(0x0008000)
-                        .addAction(R.drawable.ic_location_on_white_24dp_small, "Add WP", mNotifityPendingIntent)
-                        .setContentIntent(PendingIntent.getActivity(this, 0, new Intent(), 0));
-
-        mNotificationManager.notify(2, mBuilder.build());
-    }
-
     public void notificationCustomLayout(){
 
         // get the view layout
         RemoteViews remoteView = new RemoteViews(
                 getPackageName(), R.layout.custom_notification);
+
+        //Update textView values in custom Notification
+        remoteView.setTextViewText(R.id.textViewTripmeterMetrics, Long.toString(totalDistance));
+        remoteView.setTextViewText(R.id.textViewWayPointMetrics, Long.toString(wayPointDistance));
 
         // define intents
         PendingIntent pIntentAddWaypoint = PendingIntent.getBroadcast(
@@ -584,8 +603,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         .setSmallIcon(R.drawable.ic_my_location_white_48dp);
 
         // notify
+        /*final Handler h = new Handler();
+        final int delay = 1000; //milliseconds
+
+        h.postDelayed(new Runnable(){
+            public void run(){
+                mNotificationManager.notify(0, mBuilder.build());
+                h.postDelayed(this, delay);
+            }
+        }, delay);*/
+
         mNotificationManager.notify(0, mBuilder.build());
-        notificationCalled = true;
+        //notificationCalled = true;
     }
 
 }
